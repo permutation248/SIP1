@@ -59,12 +59,14 @@ def train(loader, model, loss_model, opt, sche, epoch,logger):
         else:
             
             loss_CL = loss_model.weighted_BCE_loss(pred,label,inc_L_ind)
-
+            #z_sample是融合后的潜在表示,z_c_loss_new是计算潜在表示与标签嵌入之间的损失
             z_c_loss = loss_model.z_c_loss_new(z_sample, label, label_emb_sample,inc_L_ind)
+            #mu代表均值，sca代表方差,coherent_loss计算样本在各个视图的潜在表示与融合后的潜在表示之间的一致性
             cohr_loss = loss_model.corherent_loss(uniview_mu_list, uniview_sca_list,fusion_z_mu, fusion_z_sca,mask=inc_V_ind)
 
             loss_mse = 0
             for v in range(len(data)):
+                #loss_model.weighted_wmse_loss计算每个视图的重构误差,xr_list是每个视图的重构结果
                 loss_mse += loss_model.weighted_wmse_loss(data[v],xr_list[v],inc_V_ind[:,v],reduction='mean')
 
             assert torch.sum(torch.isnan(loss_mse)).item() == 0
@@ -241,7 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--root-dir', type=str, metavar='PATH', 
                         default='data/')
     parser.add_argument('--dataset', type=str, default='')#mirflickr corel5k pascal07 iaprtc12 espgame
-    parser.add_argument('--datasets', type=list, default=['corel5k'])
+    parser.add_argument('--datasets', type=list, default=['pascal07'])
     parser.add_argument('--mask-view-ratio', type=float, default=0.5)
     parser.add_argument('--mask-label-ratio', type=float, default=0.5)
     parser.add_argument('--training-sample-ratio', type=float, default=0.7)
@@ -283,7 +285,7 @@ if __name__ == '__main__':
             os.makedirs(args.records_dir)
     lr_list = [1e-3]
     alpha_list = [1e0]# 
-    beta_list = [1e-3]#1e-3 for corel5k and mirflickr, 1e0 for pascal07, 1e-1 for espgame, 1e0 for iaprtc12
+    beta_list = [1e0]#1e-3 for corel5k and mirflickr, 1e0 for pascal07, 1e-1 for espgame, 1e0 for iaprtc12
     gamma_list = [0]
     sigma_list = [1e0]#1e0for others ,1e-1 for mirflickr
     if args.lr >= 0.01:

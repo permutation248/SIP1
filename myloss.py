@@ -41,11 +41,13 @@ class Loss(nn.Module):
     
 
 
-
+    #计算潜在表示与标签嵌入之间的损失，多标签的嵌入融合再与潜在表示计算均方误差
     def z_c_loss_new(self,z_mu, label,  c_mu,inc_L_ind):
         label_inc = label.mul(inc_L_ind)
         
+        #sample_label_emb是根据标签嵌入计算得到的样本标签嵌入表示
         sample_label_emb = (label_inc.matmul(c_mu))/(label_inc.sum(-1)+1e-9).unsqueeze(-1)
+        #计算潜在表示与样本标签嵌入之间的均方误差损失
         loss = ((z_mu-sample_label_emb)**2)
         # print(loss.mean())
         return loss.mean()
@@ -54,7 +56,7 @@ class Loss(nn.Module):
 
 
 
-
+    #计算各个视图的潜在表示与融合后的潜在表示之间的一致性
     def corherent_loss(self,uniview_dist_mu, uniview_dist_sca, aggregate_mu, aggregate_sca, mask=None):
         if mask is None:
             mask = torch.ones_like((aggregate_mu.shape[0],len(uniview_dist_mu))).to(aggregate_mu.device)
@@ -76,6 +78,7 @@ class Loss(nn.Module):
 
         return sample_ave_tc_term_loss
 
+    # 计算二分类的加权交叉熵损失，pred是预测值，label是真实标签，inc_L_ind是标签的包含指示矩阵
     def weighted_BCE_loss(self,pred,label,inc_L_ind,reduction='mean'):
         assert torch.sum(torch.isnan(torch.log(pred))).item() == 0
         assert torch.sum(torch.isnan(torch.log(1 - pred + 1e-5))).item() == 0
@@ -90,7 +93,8 @@ class Loss(nn.Module):
             return torch.sum(res)
         elif reduction=='none':
             return res
-            
+    
+    #计算重建损失，input是输入数据，target是重构数据，weight是权重，mse表示回归损失
     def weighted_wmse_loss(self,input, target, weight, reduction='mean'):
         ret = (torch.diag(weight).mm(target - input)) ** 2
         if torch.sum(torch.isnan(ret)).item()>0:
